@@ -1,0 +1,316 @@
+# Section A: Beginning Step – Login and File 
+Step A.1: Login into GitBash 
+
+Step A.2: Create folders using HDFS: 
+
+hdfs dfs -mkdir -p /user/talam6/climate/globaltemperatures 
+
+hdfs dfs -mkdir -p /user/talam6/climate/landtempsbycountry 
+
+hdfs dfs -mkdir -p /user/talam6/climate/landtempsbycity 
+
+hdfs dfs -mkdir -p /user/talam6/climate/landtempsbymajorcity 
+
+hdfs dfs -mkdir -p /user/talam6/climate/landtempsbystate 
+
+# Step A.3: Download Data and File Organization: 
+
+After then, use this wget command to download all 5 datasets from Github: 
+
+wget https://github.com/ItIsTariqAlam/CIS-4560-Term-Project-Tutorial-/blob/7dba5c88d1411ea8963b80a6c63c4cecee8ba993/GlobalLandTemperaturesByCity.csv
+wget https://github.com/ItIsTariqAlam/CIS-4560-Term-Project-Tutorial-/blob/7dba5c88d1411ea8963b80a6c63c4cecee8ba993/GlobalLandTemperaturesByCountry.csv
+wget https://github.com/ItIsTariqAlam/CIS-4560-Term-Project-Tutorial-/blob/7dba5c88d1411ea8963b80a6c63c4cecee8ba993/GlobalLandTemperaturesByMajorCity.csv
+wget https://github.com/ItIsTariqAlam/CIS-4560-Term-Project-Tutorial-/blob/7dba5c88d1411ea8963b80a6c63c4cecee8ba993/GlobalLandTemperaturesByState.csv
+wget https://github.com/ItIsTariqAlam/CIS-4560-Term-Project-Tutorial-/blob/7dba5c88d1411ea8963b80a6c63c4cecee8ba993/GlobalTemperatures.csv
+
+Organize the files: 
+
+ 
+hdfs dfs -put GlobalTemperatures.csv /user/talam6/climate/globaltemperatures/ 
+
+hdfs dfs -put GlobalLandTemperaturesByCountry.csv /user/talam6/climate/landtempsbycountry/ 
+
+hdfs dfs -put GlobalLandTemperaturesByCity.csv /user/talam6/climate/landtempsbycity/ 
+
+hdfs dfs -put GlobalLandTemperaturesByMajorCity.csv /user/talam6/climate/landtempsbymajorcity/ 
+
+hdfs dfs -put GlobalLandTemperaturesByState.csv /user/talam6/climate/landtempsbystate/ 
+
+ 
+
+Verify the files:  
+
+hdfs dfs -ls /user/nkon/climate/ 
+
+# Section 1: Format the data and verify using HDFS, and Go to Beeline 
+
+# Step A.2: Beeline 
+
+Go to beeline: beeline 
+
+Make sure to use your database:  
+
+use talam6; (your username) 
+
+# Section 2: Creating the External Tables 
+# Step 2.1: Creating the table for Global Temperature 
+
+CREATE EXTERNAL TABLE IF NOT EXISTS global_temperatures ( 
+
+  dt DATE, 
+
+  land_avg_temp DOUBLE, 
+
+  land_avg_temp_uncertainty DOUBLE, 
+
+  land_max_temp DOUBLE, 
+
+  land_max_temp_uncertainty DOUBLE, 
+
+  land_min_temp DOUBLE, 
+
+  land_min_temp_uncertainty DOUBLE, 
+
+  land_ocean_avg_temp DOUBLE, 
+
+  land_ocean_avg_temp_uncertainty DOUBLE 
+
+) 
+
+ROW FORMAT DELIMITED 
+
+FIELDS TERMINATED BY ',' 
+
+STORED AS TEXTFILE 
+
+LOCATION '/user/talam6/climate/globaltemperatures/';          (Make sure to use your username) 
+
+ 
+
+Verify the Table:  
+
+DESCRIBE global_temperatures; 
+
+
+
+
+# Step 2.2: Creating Table for Country 
+
+CREATE EXTERNAL TABLE IF NOT EXISTS land_temps_by_country ( 
+
+  dt DATE, 
+
+  avg_temp DOUBLE, 
+
+  avg_temp_uncertainty DOUBLE, 
+
+  country STRING 
+
+) 
+
+ROW FORMAT DELIMITED 
+
+FIELDS TERMINATED BY ',' 
+
+STORED AS TEXTFILE 
+
+LOCATION '/user/talam6/climate/landtempsbycountry/'; 
+
+ 
+
+Verify the table:  
+
+DESCRIBE land_temps_by_country; 
+
+
+
+# Step 2.3: Creating the tables for Global Land Temperatures by City 
+
+CREATE EXTERNAL TABLE IF NOT EXISTS land_temps_by_city ( 
+
+  dt DATE, 
+
+  avg_temp DOUBLE, 
+
+  avg_temp_uncertainty DOUBLE, 
+
+  city STRING, 
+
+  country STRING, 
+
+  latitude STRING, 
+
+  longitude STRING 
+
+) 
+
+ROW FORMAT DELIMITED 
+
+FIELDS TERMINATED BY ',' 
+
+STORED AS TEXTFILE 
+
+LOCATION '/user/talam6/climate/landtempsbycity/'; 
+
+ 
+
+Verify: 
+DESCRIBE FORMATTED land_temps_by_city; 
+
+
+
+
+# Step 2.4: Create Table for Major Cities 
+
+CREATE EXTERNAL TABLE IF NOT EXISTS land_temps_by_major_city ( 
+
+  dt DATE, 
+
+  avg_temp DOUBLE, 
+
+  avg_temp_uncertainty DOUBLE, 
+
+  city STRING, 
+
+  country STRING, 
+
+  latitude STRING, 
+
+  longitude STRING 
+
+) 
+
+ROW FORMAT DELIMITED 
+
+FIELDS TERMINATED BY ',' 
+
+STORED AS TEXTFILE 
+
+LOCATION '/user/nkon/climate/landtempsbymajorcity/'; 
+
+ 
+
+Verify the if the Tables Exist:  
+
+DESCRIBE land_temps_by_major_city; 
+
+
+# Step 2.5: Create Table for State  
+
+CREATE EXTERNAL TABLE IF NOT EXISTS land_temps_by_state ( 
+
+  dt DATE, 
+
+  avg_temp DOUBLE, 
+
+  avg_temp_uncertainty DOUBLE, 
+
+  state STRING, 
+
+  country STRING 
+
+) 
+
+ROW FORMAT DELIMITED 
+
+FIELDS TERMINATED BY ',' 
+
+STORED AS TEXTFILE 
+
+LOCATION '/user/nkon/climate/landtempsbystate/'; 
+
+ 
+
+Verify the table: 
+
+DESCRIBE land_temps_by_state;
+
+
+# Section 3: Data Cleaning and Transformation 
+# Step 3.1: Create a Cleaned Table for Country 
+
+CREATE TABLE land_temps_by_country_clean AS SELECT dt,YEAR(dt) AS year, MONTH(dt) AS month, country, avg_temp, avg_temp_uncertainty FROM land_temps_by_country WHERE avg_temp IS NOT NULL; 
+
+ 
+
+Verify: SELECT * FROM land_temps_by_country_clean LIMIT 5; 
+
+# Step 3.2: Create a Cleaned City Table 
+
+CREATE TABLE land_temps_by_city_clean AS SELECT dt, YEAR(dt) AS year, MONTH(dt) AS month, city, country, avg_temp, avg_temp_uncertainty, latitude, longitude FROM land_temps_by_city WHERE avg_temp IS NOT NULL; 
+
+ 
+
+Verify: SELECT * FROM land_temps_by_city_clean LIMIT 5; 
+
+# Step 3.3: Create a Cleaned Table for Global Temperature Average 
+
+CREATE TABLE global_temperatures_clean AS SELECT dt, YEAR(dt) AS year, MONTH(dt) AS month, land_avg_temp, land_ocean_avg_temp FROM global_temperatures WHERE land_avg_temp IS NOT NULL; 
+
+ 
+
+Verify: SELECT * FROM global_temperatures_clean LIMIT 5; 
+
+# Step 3.3: Create a Cleaned Table for Global Temperature Average 
+
+CREATE TABLE global_temperatures_clean AS SELECT dt, YEAR(dt) AS year, MONTH(dt) AS month, land_avg_temp, land_ocean_avg_temp FROM global_temperatures WHERE land_avg_temp IS NOT NULL; 
+
+ 
+
+Verify: SELECT * FROM global_temperatures_clean LIMIT 5; 
+
+# Section 4: Specific Analysis and Export Output to Excel or Tableau 
+# Step 4.1 Create a cleaned data for three centuries analysis: 
+
+ 
+INSERT OVERWRITE DIRECTORY '/user/nkon/climate/output/century_avg' ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' SELECT CASE WHEN year BETWEEN 1800 AND 1899 THEN '1800s' WHEN year BETWEEN 1900 AND 1999 THEN '1900s' WHEN year BETWEEN 2000 AND 2013 THEN '2000s' END AS period, AVG(avg_temp) AS avg_temp FROM land_temps_by_country_clean WHERE year BETWEEN 1800 AND 2013 GROUP BY CASE WHEN year BETWEEN 1800 AND 1899 THEN '1800s' WHEN year BETWEEN 1900 AND 1999 THEN '1900s' WHEN year BETWEEN 2000 AND 2013 THEN '2000s' END; 
+
+# Step 4.2: Global Temperature Trend 
+
+INSERT OVERWRITE DIRECTORY '/user/nkon/climate/output/global_year' ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' SELECT year, AVG(land_avg_temp) AS avg_temp FROM global_temperatures_clean GROUP BY year ORDER BY year; 
+
+# Step 4.3: Country by Average 
+
+INSERT OVERWRITE DIRECTORY '/user/nkon/climate/output/country_avg' ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' SELECT country, AVG(avg_temp) AS avg_temp FROM land_temps_by_country_clean GROUP BY country ORDER BY avg_temp DESC; 
+
+# Step 4.4: Country Temperature Change Trend Pattern 
+
+INSERT OVERWRITE DIRECTORY '/user/nkon/climate/output/country_change' ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' SELECT country, AVG(CASE WHEN year BETWEEN 1900 AND 1920 THEN avg_temp END) AS early_temp, AVG(CASE WHEN year BETWEEN 2000 AND 2013 THEN avg_temp END) AS recent_temp, AVG(CASE WHEN year BETWEEN 2000 AND 2013 THEN avg_temp END) - AVG(CASE WHEN year BETWEEN 1900 AND 1920 THEN avg_temp END) AS temp_change FROM land_temps_by_country_clean GROUP BY country; 
+
+# Step 4.6: Verify Data and Download into PC:  
+
+If all things correct, you should see all files ready to be dowloaded for Excel and Tableau analysis in the next step: 
+
+Verify (exit beeline): hdfs dfs -ls /user/nkon/climate/output/  
+
+# Section 5: Downloading the data
+
+# Step 5.1 : Dowload all data to personal Computer for Further Analysis 
+hdfs dfs -get /user/nkon/climate/output . 
+
+# Section 5.2: Combine into 1 CSV file: 
+
+cat output/century_avg/* > century_avg.csv 
+
+cat output/global_year/* > global_year.csv 
+
+cat output/country_avg/* > country_avg.csv 
+
+cat output/country_change/* > country_change.csv 
+
+cat output/city_change/* > city_change.csv 
+
+# Section 5.3: Then open a new window and run these to export to PC: 
+
+ 
+scp nkon@129.146.237.12:~/century_avg.csv . 
+
+scp nkon@129.146.237.12:~/global_year.csv . 
+
+scp nkon@129.146.237.12:~/country_avg.csv . 
+
+scp nkon@129.146.237.12:~/country_change.csv . 
+
+scp nkon@129.146.237.12:~/city_change.csv . 
+
+# Section 5.4: Now you can use those data in Excel and Tableau for visualizations.
